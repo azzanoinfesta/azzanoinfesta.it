@@ -13,7 +13,7 @@ html, body { height:100%; overflow:hidden; font-family:-apple-system,BlinkMacSys
 }
 #map-container:active { cursor:grabbing; }
 #map-inner { position:absolute; top:0; left:0; transform-origin:0 0; will-change:transform; }
-#map-img { display:block; width:600px; pointer-events:none; user-select:none; -webkit-user-drag:none; }
+#map-img { display:block; width:2378px; max-width:none; pointer-events:none; user-select:none; -webkit-user-drag:none; image-rendering:-webkit-optimize-contrast; }
 .stand {
   position:absolute; cursor:pointer; border-radius:2px;
   background:rgba(160,100,80,0.35); border:1px solid rgba(140,80,60,0.6);
@@ -208,12 +208,13 @@ let didDrag = false;
 const inner = document.getElementById('map-inner');
 const container = document.getElementById('map-container');
 
+const NATIVE_W = 2378, NATIVE_H = 3347;
+
 function centerMap() {
   const cw = container.clientWidth, ch = container.clientHeight;
-  const iw = 600, ih = 600 * (3347/2378);
-  scale = Math.max(cw / iw, ch / ih) * 1.02;
-  tx = (cw - iw*scale) / 2;
-  ty = 40;
+  scale = Math.min(cw / NATIVE_W, ch / NATIVE_H) * 0.98;
+  tx = (cw - NATIVE_W*scale) / 2;
+  ty = (ch - NATIVE_H*scale) / 2;
   applyT();
 }
 
@@ -346,8 +347,8 @@ function selectFromSearch(id) {
     const rect = el.getBoundingClientRect();
     const crect = container.getBoundingClientRect();
     const targetScale = 2.2;
-    const elCenterX = (parseFloat(el.style.left)/100) * 600 + (parseFloat(el.style.width)/100)*600/2;
-    const elCenterY = (parseFloat(el.style.top)/100) * (600*3347/2378) + (parseFloat(el.style.height)/100)*(600*3347/2378)/2;
+    const elCenterX = (parseFloat(el.style.left)/100) * NATIVE_W + (parseFloat(el.style.width)/100)*NATIVE_W/2;
+    const elCenterY = (parseFloat(el.style.top)/100) * NATIVE_H + (parseFloat(el.style.height)/100)*NATIVE_H/2;
     scale = targetScale;
     tx = crect.width/2 - elCenterX*scale;
     ty = crect.height/2 - elCenterY*scale;
