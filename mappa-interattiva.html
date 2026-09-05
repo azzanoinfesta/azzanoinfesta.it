@@ -16,10 +16,10 @@ html, body { height:100%; overflow:hidden; font-family:-apple-system,BlinkMacSys
 #map-img { display:block; width:2378px; max-width:none; pointer-events:none; user-select:none; -webkit-user-drag:none; image-rendering:-webkit-optimize-contrast; }
 .stand {
   position:absolute; cursor:pointer; border-radius:2px;
-  background:rgba(160,100,80,0.35); border:1px solid rgba(140,80,60,0.6);
+  background:transparent; border:none;
   transition:background 0.15s;
 }
-.stand:active, .stand.active { background:rgba(232,160,48,0.85); border-color:#b87010; border-width:1.5px; z-index:5; }
+.stand:active, .stand.active { background:rgba(232,160,48,0.55); border:1.5px solid #b87010; z-index:5; }
 
 #zoom-btns { position:fixed; bottom:20px; right:16px; display:flex; flex-direction:column; gap:8px; z-index:30; }
 .zbtn {
