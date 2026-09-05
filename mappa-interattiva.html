@@ -13,6 +13,7 @@ html, body { height:100%; overflow:hidden; font-family:-apple-system,BlinkMacSys
 }
 #map-container:active { cursor:grabbing; }
 #map-inner { position:absolute; top:0; left:0; transform-origin:0 0; will-change:transform; }
+#map-inner.animate { transition:transform 0.5s cubic-bezier(.22,.68,0,1.4); }
 #map-img { display:block; width:2378px; max-width:none; pointer-events:none; user-select:none; -webkit-user-drag:none; image-rendering:-webkit-optimize-contrast; }
 .stand {
   position:absolute; cursor:pointer; border-radius:2px;
@@ -344,17 +345,20 @@ function selectFromSearch(id) {
   document.getElementById('search-input').value='';
   const el = document.querySelector(`.stand[data-id="${id}"]`);
   if (el) {
+    document.querySelectorAll('.stand').forEach(s => s.classList.remove('active'));
     const rect = el.getBoundingClientRect();
     const crect = container.getBoundingClientRect();
     const targetScale = 2.2;
     const elCenterX = (parseFloat(el.style.left)/100) * NATIVE_W + (parseFloat(el.style.width)/100)*NATIVE_W/2;
     const elCenterY = (parseFloat(el.style.top)/100) * NATIVE_H + (parseFloat(el.style.height)/100)*NATIVE_H/2;
+    inner.classList.add('animate');
     scale = targetScale;
     tx = crect.width/2 - elCenterX*scale;
     ty = crect.height/2 - elCenterY*scale;
     applyT();
     el.classList.add('active');
-    setTimeout(()=>openPopup(id), 300);
+    setTimeout(() => inner.classList.remove('animate'), 550);
+    setTimeout(()=>openPopup(id), 500);
   }
 }
 
@@ -364,8 +368,16 @@ document.addEventListener('click', e => {
   if (!e.target.closest('#search-bar')) document.getElementById('dd').style.display='none';
 });
 
-window.addEventListener('load', centerMap);
+window.addEventListener('load', () => {
+  centerMap();
+  setTimeout(centerMap, 150);
+  setTimeout(centerMap, 500);
+});
 window.addEventListener('resize', centerMap);
+window.addEventListener('orientationchange', () => setTimeout(centerMap, 300));
+if (window.visualViewport) {
+  window.visualViewport.addEventListener('resize', centerMap);
+}
 </script>
 </body>
 </html>
