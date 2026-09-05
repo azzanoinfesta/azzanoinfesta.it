@@ -327,6 +327,7 @@ function closePopup() {
 const allIds = [...document.querySelectorAll('.stand')].map(el => el.getAttribute('data-id'));
 
 function filterDd(v) {
+  if (popupTimer) { clearTimeout(popupTimer); popupTimer = null; }
   const dd = document.getElementById('dd');
   const f = v.length===0 ? [] : allIds.filter(id => {
     const nome = (DATA[id]?.nome || '').toLowerCase();
@@ -340,13 +341,16 @@ function filterDd(v) {
   dd.style.display='block';
 }
 
+let popupTimer = null;
+
 function selectFromSearch(id) {
   document.getElementById('dd').style.display='none';
   document.getElementById('search-input').value='';
+  document.getElementById('search-input').blur();
+  if (popupTimer) clearTimeout(popupTimer);
   const el = document.querySelector(`.stand[data-id="${id}"]`);
   if (el) {
     document.querySelectorAll('.stand').forEach(s => s.classList.remove('active'));
-    const rect = el.getBoundingClientRect();
     const crect = container.getBoundingClientRect();
     const targetScale = 2.2;
     const elCenterX = (parseFloat(el.style.left)/100) * NATIVE_W + (parseFloat(el.style.width)/100)*NATIVE_W/2;
@@ -358,7 +362,7 @@ function selectFromSearch(id) {
     applyT();
     el.classList.add('active');
     setTimeout(() => inner.classList.remove('animate'), 550);
-    setTimeout(()=>openPopup(id), 500);
+    popupTimer = setTimeout(() => { openPopup(id); popupTimer = null; }, 500);
   }
 }
 
@@ -373,11 +377,7 @@ window.addEventListener('load', () => {
   setTimeout(centerMap, 150);
   setTimeout(centerMap, 500);
 });
-window.addEventListener('resize', centerMap);
 window.addEventListener('orientationchange', () => setTimeout(centerMap, 300));
-if (window.visualViewport) {
-  window.visualViewport.addEventListener('resize', centerMap);
-}
 </script>
 </body>
 </html>
