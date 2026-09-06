@@ -313,7 +313,7 @@ function openPopup(id) {
   let links = '';
   if (d.sito) links += `<a href="${d.sito.startsWith('http')?d.sito:'https://'+d.sito}" target="_blank">Sito web</a>`;
   if (d.facebook) links += `<a href="${d.facebook.startsWith('http')?d.facebook:'https://facebook.com/'+d.facebook}" target="_blank">Facebook</a>`;
-  if (d.instagram) links += `<a href="https://instagram.com/${d.instagram.replace('@','')}" target="_blank">Instagram</a>`;
+  if (d.instagram) links += `<a href="${d.instagram.startsWith('http')?d.instagram:'https://instagram.com/'+d.instagram.replace('@','')}" target="_blank">Instagram</a>`;
   if (links) html += `<div class="popup-links">${links}</div>`;
 
   popup.innerHTML = html;
