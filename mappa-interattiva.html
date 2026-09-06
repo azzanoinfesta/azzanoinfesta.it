@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Azzano in Festa - Mappa Interattiva</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+html, body { height:100%; overflow:hidden; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; background:#f0ede4; }
+#map-container {
+  width:100%; height:100vh; overflow:hidden; position:relative;
+  touch-action:none; cursor:grab; background:#f0ede4;
+}
+#map-container:active { cursor:grabbing; }
+#map-inner { position:absolute; top:0; left:0; transform-origin:0 0; will-change:transform; }
+#map-inner.animate { transition:transform 0.5s cubic-bezier(.22,.68,0,1.4); }
+#map-img { display:block; width:2378px; max-width:none; pointer-events:none; user-select:none; -webkit-user-drag:none; image-rendering:-webkit-optimize-contrast; }
+.stand {
+  position:absolute; cursor:pointer; border-radius:2px;
+  background:transparent; border:none;
+  transition:background 0.15s;
+}
+.stand:active, .stand.active { background:rgba(232,160,48,0.55); border:1.5px solid #b87010; z-index:5; }
+
+#zoom-btns { position:fixed; bottom:20px; right:16px; display:flex; flex-direction:column; gap:8px; z-index:30; }
+.zbtn {
+  width:44px; height:44px; background:#fff; border:1px solid #ddd;
+  border-radius:50%; font-size:22px; cursor:pointer;
+  display:flex; align-items:center; justify-content:center; color:#333;
+  box-shadow:0 2px 6px rgba(0,0,0,0.15);
+}
+
+#overlay {
+  position:fixed; inset:0; background:rgba(0,0,0,0.4);
+  display:none; align-items:flex-end; justify-content:center; z-index:100;
+}
+#overlay.show { display:flex; }
+#popup {
+  background:#fff; width:100%; max-width:480px; border-radius:16px 16px 0 0;
+  padding:20px 20px 28px; max-height:75vh; overflow-y:auto;
+  box-shadow:0 -4px 20px rgba(0,0,0,0.2);
+  animation: slideUp 0.2s ease-out;
+}
+@keyframes slideUp { from { transform:translateY(30px); opacity:0; } to { transform:translateY(0); opacity:1; } }
+#popup .close-btn {
+  float:right; font-size:22px; color:#999; cursor:pointer; line-height:1; padding:4px;
+}
+.popup-header { display:flex; align-items:center; gap:12px; margin-bottom:4px; }
+.popup-logo { height:64px; width:auto; border-radius:8px; object-fit:contain; flex-shrink:0; }
+.popup-title-block { flex:1; }
+.popup-stand-num {
+  display:inline-block; background:#e8a030; color:#4a2e00; font-weight:700;
+  font-size:13px; padding:2px 10px; border-radius:12px; margin-bottom:4px;
+}
+.popup-name { font-size:19px; font-weight:700; color:#1a1a1a; line-height:1.25; }
+.popup-category {
+  display:inline-block; font-size:12px; color:#6b5f3e; background:#f0e8cc;
+  padding:3px 10px; border-radius:10px; margin:10px 0 12px;
+}
+.popup-field { font-size:14px; color:#444; margin-bottom:6px; line-height:1.45; }
+.popup-field b { color:#222; }
+.popup-desc { font-size:14px; color:#555; line-height:1.5; margin:10px 0; }
+.popup-links { display:flex; gap:10px; flex-wrap:wrap; margin-top:12px; }
+.popup-links a {
+  font-size:13px; color:#1a5fb4; text-decoration:none; background:#eef4fb;
+  padding:6px 12px; border-radius:8px; font-weight:500;
+}
+#search-bar {
+  position:fixed; top:12px; left:12px; right:12px; z-index:30;
+}
+#search-input {
+  width:100%; padding:12px 14px; border-radius:12px; border:none;
+  font-size:15px; box-shadow:0 2px 10px rgba(0,0,0,0.15); background:#fff;
+}
+#search-input:focus { outline:2px solid #e8a030; }
+#dd {
+  display:none; margin-top:6px; max-height:45vh; overflow-y:auto;
+  border-radius:12px; background:#fff; box-shadow:0 2px 10px rgba(0,0,0,0.15);
+}
+.ditem {
+  padding:11px 14px; font-size:14px; cursor:pointer; color:#222;
+  border-bottom:1px solid #f0f0f0; display:flex; align-items:center; gap:10px;
+}
+.ditem:last-child { border-bottom:none; }
+.ditem .tag {
+  font-size:12px; background:#f0e8cc; color:#6b5f3e; border-radius:6px;
+  padding:2px 8px; font-weight:600; min-width:26px; text-align:center; flex-shrink:0;
+}
+</style>
+</head>
+<body>
+
+<div id="search-bar">
+  <input type="text" id="search-input" placeholder="Cerca associazione o numero stand..." oninput="filterDd(this.value)" onfocus="showDd()">
+  <div id="dd"></div>
+</div>
+
+<div id="map-container">
+  <div id="map-inner">
+    <img id="map-img" src="img/mappa_azzano.webp" alt="Mappa Azzano in Festa">
+      <div class="stand" style="left:47.014%;top:72.393%;width:1.514%;height:1.195%" data-id="24"></div>
+      <div class="stand" style="left:44.996%;top:72.393%;width:1.598%;height:1.135%" data-id="25"></div>
+      <div class="stand" style="left:48.949%;top:72.453%;width:1.43%;height:1.076%" data-id="23"></div>
+      <div class="stand" style="left:50.799%;top:72.393%;width:1.472%;height:1.046%" data-id="22"></div>
+      <div class="stand" style="left:52.733%;top:72.453%;width:1.598%;height:1.076%" data-id="21"></div>
+      <div class="stand" style="left:55.088%;top:72.453%;width:1.724%;height:1.135%" data-id="19"></div>
+      <div class="stand" style="left:57.023%;top:72.453%;width:1.598%;height:1.076%" data-id="18"></div>
+      <div class="stand" style="left:61.859%;top:81.147%;width:2.229%;height:1.076%" data-id="20"></div>
+      <div class="stand" style="left:67.746%;top:77.502%;width:8.242%;height:1.285%" data-id="A"></div>
+      <div class="stand" style="left:22.582%;top:72.244%;width:1.472%;height:0.837%" data-id="27"></div>
+      <div class="stand" style="left:24.516%;top:72.065%;width:1.472%;height:1.076%" data-id="26"></div>
+      <div class="stand" style="left:22.876%;top:68.18%;width:6.35%;height:1.464%" data-id="C"></div>
+      <div class="stand" style="left:50.463%;top:61.936%;width:1.388%;height:0.866%" data-id="28"></div>
+      <div class="stand" style="left:50.336%;top:60.472%;width:1.514%;height:0.986%" data-id="29"></div>
+      <div class="stand" style="left:50.463%;top:57.813%;width:1.472%;height:1.135%" data-id="30"></div>
+      <div class="stand" style="left:50.336%;top:56.379%;width:1.598%;height:1.046%" data-id="31"></div>
+      <div class="stand" style="left:50.463%;top:55.064%;width:1.388%;height:0.896%" data-id="32"></div>
+      <div class="stand" style="left:50.463%;top:53.69%;width:1.472%;height:1.016%" data-id="33"></div>
+      <div class="stand" style="left:50.463%;top:52.136%;width:1.472%;height:1.076%" data-id="34"></div>
+      <div class="stand" style="left:50.463%;top:50.822%;width:1.472%;height:1.016%" data-id="35"></div>
+      <div class="stand" style="left:50.463%;top:46.4%;width:1.388%;height:1.135%" data-id="36"></div>
+      <div class="stand" style="left:50.336%;top:45.085%;width:1.514%;height:1.046%" data-id="37"></div>
+      <div class="stand" style="left:50.463%;top:43.591%;width:1.388%;height:1.076%" data-id="38"></div>
+      <div class="stand" style="left:50.463%;top:42.307%;width:1.388%;height:1.076%" data-id="39"></div>
+      <div class="stand" style="left:50.463%;top:40.932%;width:1.472%;height:0.926%" data-id="40"></div>
+      <div class="stand" style="left:50.463%;top:36.57%;width:1.472%;height:1.046%" data-id="41"></div>
+      <div class="stand" style="left:50.463%;top:35.166%;width:1.304%;height:0.986%" data-id="42"></div>
+      <div class="stand" style="left:50.336%;top:33.702%;width:1.598%;height:1.016%" data-id="43"></div>
+      <div class="stand" style="left:50.463%;top:32.477%;width:1.388%;height:0.926%" data-id="44"></div>
+      <div class="stand" style="left:50.463%;top:30.953%;width:1.472%;height:1.016%" data-id="45"></div>
+      <div class="stand" style="left:50.336%;top:29.579%;width:1.514%;height:0.926%" data-id="46"></div>
+      <div class="stand" style="left:50.463%;top:28.145%;width:1.388%;height:1.046%" data-id="47"></div>
+      <div class="stand" style="left:50.463%;top:26.74%;width:1.556%;height:1.105%" data-id="48"></div>
+      <div class="stand" style="left:50.252%;top:25.396%;width:1.682%;height:1.016%" data-id="49"></div>
+      <div class="stand" style="left:50.336%;top:23.962%;width:1.514%;height:1.076%" data-id="50"></div>
+      <div class="stand" style="left:64.676%;top:37.018%;width:9.546%;height:1.135%" data-id="B"></div>
+      <div class="stand" style="left:72.246%;top:43.711%;width:1.43%;height:0.926%" data-id="55"></div>
+      <div class="stand" style="left:72.077%;top:42.277%;width:1.682%;height:1.016%" data-id="56"></div>
+      <div class="stand" style="left:72.161%;top:40.813%;width:1.682%;height:1.076%" data-id="57"></div>
+      <div class="stand" style="left:72.077%;top:39.349%;width:1.598%;height:1.135%" data-id="58"></div>
+      <div class="stand" style="left:69.68%;top:53.421%;width:1.514%;height:1.016%" data-id="2"></div>
+      <div class="stand" style="left:69.68%;top:54.765%;width:1.598%;height:1.135%" data-id="3"></div>
+      <div class="stand" style="left:69.807%;top:56.2%;width:1.472%;height:0.986%" data-id="4"></div>
+      <div class="stand" style="left:69.68%;top:57.604%;width:1.598%;height:1.016%" data-id="5"></div>
+      <div class="stand" style="left:69.807%;top:59.038%;width:1.472%;height:0.986%" data-id="6"></div>
+      <div class="stand" style="left:69.68%;top:60.382%;width:1.598%;height:1.195%" data-id="7"></div>
+      <div class="stand" style="left:69.807%;top:61.846%;width:1.472%;height:0.926%" data-id="8"></div>
+      <div class="stand" style="left:69.68%;top:63.131%;width:1.598%;height:1.195%" data-id="9"></div>
+      <div class="stand" style="left:69.68%;top:64.535%;width:1.682%;height:1.255%" data-id="10"></div>
+      <div class="stand" style="left:69.68%;top:65.97%;width:1.598%;height:1.016%" data-id="11"></div>
+      <div class="stand" style="left:69.807%;top:67.493%;width:1.556%;height:1.016%" data-id="12"></div>
+      <div class="stand" style="left:69.807%;top:68.808%;width:1.388%;height:1.135%" data-id="13"></div>
+      <div class="stand" style="left:69.807%;top:70.212%;width:1.472%;height:1.105%" data-id="14"></div>
+      <div class="stand" style="left:69.807%;top:71.676%;width:1.388%;height:1.016%" data-id="15"></div>
+      <div class="stand" style="left:69.807%;top:73.05%;width:1.472%;height:0.956%" data-id="16"></div>
+      <div class="stand" style="left:69.68%;top:74.485%;width:1.682%;height:1.135%" data-id="17"></div>
+      <div class="stand" style="left:72.33%;top:16.313%;width:1.43%;height:1.076%" data-id="51"></div>
+      <div class="stand" style="left:74.474%;top:16.343%;width:1.304%;height:1.016%" data-id="52"></div>
+      <div class="stand" style="left:80.109%;top:16.403%;width:1.346%;height:0.896%" data-id="53"></div>
+      <div class="stand" style="left:82.086%;top:16.343%;width:1.556%;height:0.956%" data-id="54"></div>
+      <div class="stand" style="left:82.969%;top:37.556%;width:1.472%;height:1.016%" data-id="59"></div>
+      <div class="stand" style="left:85.156%;top:37.586%;width:1.598%;height:0.926%" data-id="60"></div>
+      <div class="stand" style="left:87.384%;top:37.466%;width:1.682%;height:1.165%" data-id="61"></div>
+      <div class="stand" style="left:89.739%;top:37.437%;width:1.514%;height:1.135%" data-id="62"></div>
+      <div class="stand" style="left:94.617%;top:36.48%;width:1.598%;height:0.986%" data-id="63"></div>
+      <div class="stand" style="left:94.87%;top:34.03%;width:1.766%;height:1.135%" data-id="64"></div>
+      <div class="stand" style="left:94.87%;top:32.268%;width:1.514%;height:1.016%" data-id="65"></div>
+      <div class="stand" style="left:94.87%;top:30.445%;width:1.598%;height:1.195%" data-id="66"></div>
+      <div class="stand" style="left:94.533%;top:28.712%;width:1.598%;height:1.135%" data-id="67"></div>
+      <div class="stand" style="left:94.365%;top:27.009%;width:1.472%;height:1.076%" data-id="68"></div>
+      <div class="stand" style="left:93.818%;top:25.217%;width:1.598%;height:1.195%" data-id="69"></div>
+      <div class="stand" style="left:93.482%;top:23.514%;width:1.556%;height:1.195%" data-id="70"></div>
+      <div class="stand" style="left:92.683%;top:21.691%;width:1.682%;height:1.135%" data-id="71"></div>
+      <div class="stand" style="left:87.468%;top:23.842%;width:1.682%;height:1.076%" data-id="72"></div>
+      <div class="stand" style="left:85.408%;top:23.842%;width:1.514%;height:1.076%" data-id="73"></div>
+      <div class="stand" style="left:85.408%;top:27.965%;width:1.514%;height:0.986%" data-id="74"></div>
+      <div class="stand" style="left:85.408%;top:29.34%;width:1.598%;height:1.195%" data-id="75"></div>
+      <div class="stand" style="left:87.384%;top:32.507%;width:1.556%;height:1.105%" data-id="76"></div>
+      <div class="stand" style="left:80.025%;top:27.846%;width:1.514%;height:1.105%" data-id="77"></div>
+      <div class="stand" style="left:79.773%;top:31.312%;width:1.514%;height:1.135%" data-id="78"></div>
+      <div class="stand" style="left:79.689%;top:32.776%;width:1.682%;height:1.076%" data-id="79"></div>
+      <div class="stand" style="left:79.773%;top:34.449%;width:1.598%;height:1.135%" data-id="80"></div>
+
+  </div>
+</div>
+
+<div id="zoom-btns">
+  <button class="zbtn" onclick="zoomBy(1.35)">+</button>
+  <button class="zbtn" onclick="zoomBy(0.74)">&minus;</button>
+</div>
+
+<div id="overlay" onclick="if(event.target===this) closePopup()">
+  <div id="popup"></div>
+</div>
+
+<script>
+let DATA = {};
+
+fetch('dati_associazioni.json')
+  .then(r => r.json())
+  .then(json => { DATA = json; })
+  .catch(() => { console.warn('Impossibile caricare i dati associazioni'); });
+
+let scale=1, tx=0, ty=0;
+let isDragging=false, startX, startY, startTx, startTy;
+let lastDist=null;
+let didDrag = false;
+
+const inner = document.getElementById('map-inner');
+const container = document.getElementById('map-container');
+
+const NATIVE_W = 2378, NATIVE_H = 3347;
+
+function centerMap() {
+  const cw = container.clientWidth, ch = container.clientHeight;
+  scale = Math.min(cw / NATIVE_W, ch / NATIVE_H) * 0.98;
+  tx = (cw - NATIVE_W*scale) / 2;
+  ty = (ch - NATIVE_H*scale) / 2;
+  applyT();
+}
+
+function applyT() { inner.style.transform = `translate(${tx}px,${ty}px) scale(${scale})`; }
+
+function zoomBy(f, cx, cy) {
+  const rect = container.getBoundingClientRect();
+  const px = cx ?? rect.width/2, py = cy ?? rect.height/2;
+  const ns = Math.min(Math.max(scale*f, 0.3), 6);
+  tx = px - (px-tx)*(ns/scale);
+  ty = py - (py-ty)*(ns/scale);
+  scale = ns; applyT();
+}
+
+container.addEventListener('mousedown', e => {
+  if (e.target.closest('.stand,.zbtn')) return;
+  isDragging=true; didDrag=false; startX=e.clientX; startY=e.clientY; startTx=tx; startTy=ty;
+});
+window.addEventListener('mousemove', e => {
+  if (!isDragging) return;
+  if (Math.abs(e.clientX-startX)>3 || Math.abs(e.clientY-startY)>3) didDrag=true;
+  tx=startTx+e.clientX-startX; ty=startTy+e.clientY-startY; applyT();
+});
+window.addEventListener('mouseup', ()=>isDragging=false);
+
+container.addEventListener('wheel', e => {
+  e.preventDefault();
+  const r=container.getBoundingClientRect();
+  zoomBy(e.deltaY<0?1.15:0.87, e.clientX-r.left, e.clientY-r.top);
+}, {passive:false});
+
+container.addEventListener('touchstart', e => {
+  if (e.touches.length===1) {
+    isDragging=true; didDrag=false;
+    startX=e.touches[0].clientX; startY=e.touches[0].clientY; startTx=tx; startTy=ty;
+  }
+  if (e.touches.length===2) {
+    isDragging=false;
+    lastDist=Math.hypot(e.touches[0].clientX-e.touches[1].clientX, e.touches[0].clientY-e.touches[1].clientY);
+  }
+}, {passive:true});
+
+container.addEventListener('touchmove', e => {
+  e.preventDefault();
+  if (e.touches.length===1 && isDragging) {
+    if (Math.abs(e.touches[0].clientX-startX)>3 || Math.abs(e.touches[0].clientY-startY)>3) didDrag=true;
+    tx=startTx+e.touches[0].clientX-startX; ty=startTy+e.touches[0].clientY-startY; applyT();
+  }
+  if (e.touches.length===2) {
+    didDrag = true;
+    const d=Math.hypot(e.touches[0].clientX-e.touches[1].clientX, e.touches[0].clientY-e.touches[1].clientY);
+    if (lastDist) {
+      const cx=(e.touches[0].clientX+e.touches[1].clientX)/2;
+      const cy=(e.touches[0].clientY+e.touches[1].clientY)/2;
+      const r=container.getBoundingClientRect();
+      zoomBy(d/lastDist, cx-r.left, cy-r.top);
+    }
+    lastDist=d;
+  }
+}, {passive:false});
+
+container.addEventListener('touchend', e => {
+  if (e.touches.length<2) lastDist=null;
+  if (e.touches.length===0) isDragging=false;
+});
+
+document.querySelectorAll('.stand').forEach(el => {
+  el.addEventListener('click', () => { if (!didDrag) openPopup(el.getAttribute('data-id')); });
+});
+
+function openPopup(id) {
+  const d = DATA[id];
+  const popup = document.getElementById('popup');
+  if (!d) {
+    popup.innerHTML = `<span class="close-btn" onclick="closePopup()">&times;</span>
+      <div class="popup-stand-num">Stand ${id}</div>
+      <div class="popup-name">Dati non ancora disponibili</div>`;
+    document.getElementById('overlay').classList.add('show');
+    return;
+  }
+
+  let html = `<span class="close-btn" onclick="closePopup()">&times;</span>`;
+  html += `<div class="popup-header">`;
+  if (d.logo) html += `<img class="popup-logo" src="${d.logo}" alt="">`;
+  html += `<div class="popup-title-block">
+      <div class="popup-stand-num">Stand ${id}</div>
+      <div class="popup-name">${d.nome || ''}</div>
+    </div></div>`;
+  if (d.categoria) html += `<div class="popup-category">${d.categoria}</div>`;
+  if (d.descrizione) html += `<div class="popup-desc">${d.descrizione}</div>`;
+  if (d.indirizzo) html += `<div class="popup-field">📍 ${d.indirizzo}</div>`;
+  if (d.telefono) html += `<div class="popup-field">📞 ${d.telefono}</div>`;
+  if (d.email) html += `<div class="popup-field">✉️ ${d.email}</div>`;
+
+  let links = '';
+  if (d.sito) links += `<a href="${d.sito.startsWith('http')?d.sito:'https://'+d.sito}" target="_blank">Sito web</a>`;
+  if (d.facebook) links += `<a href="${d.facebook.startsWith('http')?d.facebook:'https://facebook.com/'+d.facebook}" target="_blank">Facebook</a>`;
+  if (d.instagram) links += `<a href="${d.instagram.startsWith('http')?d.instagram:'https://instagram.com/'+d.instagram.replace('@','')}" target="_blank">Instagram</a>`;
+  if (links) html += `<div class="popup-links">${links}</div>`;
+
+  popup.innerHTML = html;
+  document.getElementById('overlay').classList.add('show');
+}
+
+function closePopup() {
+  document.getElementById('overlay').classList.remove('show');
+}
+
+const allIds = [...document.querySelectorAll('.stand')].map(el => el.getAttribute('data-id'));
+
+function filterDd(v) {
+  if (popupTimer) { clearTimeout(popupTimer); popupTimer = null; }
+  const dd = document.getElementById('dd');
+  const f = v.length===0 ? [] : allIds.filter(id => {
+    const nome = (DATA[id]?.nome || '').toLowerCase();
+    return id.toLowerCase().includes(v.toLowerCase()) || nome.includes(v.toLowerCase());
+  });
+  if (!f.length) { dd.style.display='none'; return; }
+  dd.innerHTML = f.map(id => `
+    <div class="ditem" onclick="selectFromSearch('${id}')">
+      <span class="tag">${id}</span>${DATA[id]?.nome || 'Stand '+id}
+    </div>`).join('');
+  dd.style.display='block';
+}
+
+let popupTimer = null;
+
+function selectFromSearch(id) {
+  document.getElementById('dd').style.display='none';
+  document.getElementById('search-input').value='';
+  document.getElementById('search-input').blur();
+  if (popupTimer) clearTimeout(popupTimer);
+  const el = document.querySelector(`.stand[data-id="${id}"]`);
+  if (el) {
+    document.querySelectorAll('.stand').forEach(s => s.classList.remove('active'));
+    const crect = container.getBoundingClientRect();
+    const targetScale = 2.2;
+    const elCenterX = (parseFloat(el.style.left)/100) * NATIVE_W + (parseFloat(el.style.width)/100)*NATIVE_W/2;
+    const elCenterY = (parseFloat(el.style.top)/100) * NATIVE_H + (parseFloat(el.style.height)/100)*NATIVE_H/2;
+    inner.classList.add('animate');
+    scale = targetScale;
+    tx = crect.width/2 - elCenterX*scale;
+    ty = crect.height/2 - elCenterY*scale;
+    applyT();
+    el.classList.add('active');
+    setTimeout(() => inner.classList.remove('animate'), 550);
+    popupTimer = setTimeout(() => { openPopup(id); popupTimer = null; }, 500);
+  }
+}
+
+function showDd() { filterDd(document.getElementById('search-input').value); }
+
+document.addEventListener('click', e => {
+  if (!e.target.closest('#search-bar')) document.getElementById('dd').style.display='none';
+});
+
+window.addEventListener('load', () => {
+  centerMap();
+  setTimeout(centerMap, 150);
+  setTimeout(centerMap, 500);
+});
+window.addEventListener('orientationchange', () => setTimeout(centerMap, 300));
+</script>
+</body>
+</html>
