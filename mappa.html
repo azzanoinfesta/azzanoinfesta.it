@@ -231,8 +231,9 @@ function zoomBy(f, cx, cy) {
 }
 
 container.addEventListener('mousedown', e => {
+  didDrag=false;
   if (e.target.closest('.stand,.zbtn')) return;
-  isDragging=true; didDrag=false; startX=e.clientX; startY=e.clientY; startTx=tx; startTy=ty;
+  isDragging=true; startX=e.clientX; startY=e.clientY; startTx=tx; startTy=ty;
 });
 window.addEventListener('mousemove', e => {
   if (!isDragging) return;
