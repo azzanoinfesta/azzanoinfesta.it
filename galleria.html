@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Azzano in Festa - Galleria</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  background:#faf6ec; color:#333; padding-bottom:40px;
+}
+header {
+  background:linear-gradient(180deg,#fdf6e3 0%,#f5ead0 100%);
+  padding:24px 16px 16px; text-align:center;
+}
+header h1 { font-size:22px; color:#1a3a5c; margin-bottom:4px; }
+header .year { font-size:15px; color:#8a7050; }
+
+#day-tabs {
+  display:flex; gap:8px; justify-content:center; padding:16px; flex-wrap:wrap;
+}
+.day-tab {
+  padding:9px 18px; border-radius:20px; background:#fff; border:1px solid #e5ddc8;
+  color:#6b5f3e; font-size:14px; font-weight:600; cursor:pointer; white-space:nowrap;
+}
+.day-tab.active { background:#e8a030; color:#4a2e00; border-color:#b87010; }
+
+#grid {
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(150px,1fr));
+  gap:6px; padding:0 10px;
+}
+.thumb-wrap {
+  aspect-ratio:1/1; overflow:hidden; border-radius:6px; background:#eee;
+  cursor:pointer;
+}
+.thumb-wrap img {
+  width:100%; height:100%; object-fit:cover; display:block;
+  transition:transform 0.2s;
+}
+.thumb-wrap:active img { transform:scale(0.96); }
+
+#empty-msg {
+  text-align:center; color:#a89870; padding:40px 20px; font-size:15px; display:none;
+}
+
+#lightbox {
+  position:fixed; inset:0; background:rgba(0,0,0,0.95); z-index:200;
+  display:none; align-items:center; justify-content:center; flex-direction:column;
+  touch-action:pan-y;
+}
+#lightbox.show { display:flex; }
+#lightbox img {
+  max-width:94vw; max-height:80vh; object-fit:contain; user-select:none;
+}
+#lightbox .close-btn {
+  position:absolute; top:14px; right:18px; color:#fff; font-size:30px;
+  cursor:pointer; z-index:10; line-height:1;
+}
+#lightbox .nav-btn {
+  position:absolute; top:50%; transform:translateY(-50%);
+  color:#fff; font-size:36px; cursor:pointer; padding:10px 16px;
+  user-select:none; background:rgba(255,255,255,0.08); border-radius:8px;
+}
+#lightbox .prev-btn { left:8px; }
+#lightbox .next-btn { right:8px; }
+#lightbox .counter {
+  position:absolute; bottom:16px; left:0; right:0; text-align:center;
+  color:#ccc; font-size:13px;
+}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Azzano in Festa</h1>
+  <div class="year">Anno 2026</div>
+</header>
+
+<div id="day-tabs"></div>
+<div id="grid"></div>
+<div id="empty-msg">Foto non ancora disponibili per questa giornata.</div>
+
+<div id="lightbox">
+  <span class="close-btn" onclick="closeLightbox()">&times;</span>
+  <span class="nav-btn prev-btn" onclick="navLightbox(-1)">&#8249;</span>
+  <img id="lightbox-img" src="">
+  <span class="nav-btn next-btn" onclick="navLightbox(1)">&#8250;</span>
+  <div class="counter" id="lightbox-counter"></div>
+</div>
+
+<script>
+const YEAR = "2026";
+const DAYS = [
+  { id: "day1", label: "Ven 11 Set" },
+  { id: "day2", label: "Sab 12 Set" },
+  { id: "day3", label: "Dom 13 Set" }
+];
+
+let currentDay = DAYS[0].id;
+let currentPhotos = [];
+let currentIndex = 0;
+
+function buildTabs() {
+  const tabsEl = document.getElementById('day-tabs');
+  tabsEl.innerHTML = DAYS.map(d =>
+    `<div class="day-tab${d.id===currentDay?' active':''}" data-day="${d.id}">${d.label}</div>`
+  ).join('');
+  tabsEl.querySelectorAll('.day-tab').forEach(el => {
+    el.addEventListener('click', () => {
+      currentDay = el.getAttribute('data-day');
+      buildTabs();
+      loadDay(currentDay);
+    });
+  });
+}
+
+function loadDay(dayId) {
+  const grid = document.getElementById('grid');
+  const emptyMsg = document.getElementById('empty-msg');
+  grid.innerHTML = '';
+  emptyMsg.style.display = 'none';
+
+  const manifestUrl = `img/galleria/${YEAR}/${dayId}/manifest.json`;
+
+  fetch(manifestUrl)
+    .then(r => { if (!r.ok) throw new Error('no manifest'); return r.json(); })
+    .then(files => {
+      if (!files || !files.length) { emptyMsg.style.display='block'; return; }
+      currentPhotos = files.map(f => {
+        const dot = f.lastIndexOf('.');
+        const base = f.substring(0, dot);
+        const ext = f.substring(dot);
+        return {
+          full: `img/galleria/${YEAR}/${dayId}/full/${f}`,
+          thumb: `img/galleria/${YEAR}/${dayId}/thumb/${base}_tn${ext}`
+        };
+      });
+      grid.innerHTML = currentPhotos.map((p, i) => `
+        <div class="thumb-wrap" data-index="${i}">
+          <img src="${p.thumb}" loading="lazy" alt="">
+        </div>`).join('');
+      grid.querySelectorAll('.thumb-wrap').forEach(el => {
+        el.addEventListener('click', () => openLightbox(parseInt(el.getAttribute('data-index'))));
+      });
+    })
+    .catch(() => { emptyMsg.style.display = 'block'; });
+}
+
+function openLightbox(index) {
+  currentIndex = index;
+  document.getElementById('lightbox-img').src = currentPhotos[index].full;
+  document.getElementById('lightbox-counter').textContent = `${index+1} / ${currentPhotos.length}`;
+  document.getElementById('lightbox').classList.add('show');
+}
+
+function closeLightbox() {
+  document.getElementById('lightbox').classList.remove('show');
+}
+
+function navLightbox(dir) {
+  currentIndex = (currentIndex + dir + currentPhotos.length) % currentPhotos.length;
+  document.getElementById('lightbox-img').src = currentPhotos[currentIndex].full;
+  document.getElementById('lightbox-counter').textContent = `${currentIndex+1} / ${currentPhotos.length}`;
+}
+
+// swipe touch per il lightbox
+let touchStartX = 0;
+document.getElementById('lightbox').addEventListener('touchstart', e => {
+  touchStartX = e.touches[0].clientX;
+});
+document.getElementById('lightbox').addEventListener('touchend', e => {
+  const dx = e.changedTouches[0].clientX - touchStartX;
+  if (Math.abs(dx) > 40) navLightbox(dx < 0 ? 1 : -1);
+});
+
+document.getElementById('lightbox').addEventListener('click', e => {
+  if (e.target.id === 'lightbox') closeLightbox();
+});
+
+buildTabs();
+loadDay(currentDay);
+</script>
+</body>
+</html>
