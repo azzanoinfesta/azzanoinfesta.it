@@ -45,6 +45,15 @@ header .year { font-size:15px; color:#8a7050; }
   text-align:center; color:#a89870; padding:40px 20px; font-size:15px; display:none;
 }
 
+#back-to-top {
+  position:fixed; bottom:20px; right:16px; z-index:50;
+  width:48px; height:48px; border-radius:50%;
+  background:#e8a030; color:#4a2e00; border:none;
+  font-size:22px; display:none; align-items:center; justify-content:center;
+  box-shadow:0 3px 10px rgba(0,0,0,0.25); cursor:pointer;
+}
+#back-to-top.show { display:flex; }
+
 #lightbox {
   position:fixed; inset:0; background:rgba(0,0,0,0.95); z-index:200;
   display:none; align-items:center; justify-content:center; flex-direction:column;
@@ -92,6 +101,8 @@ header .year { font-size:15px; color:#8a7050; }
 <div id="day-tabs"></div>
 <div id="grid"></div>
 <div id="empty-msg">Foto non ancora disponibili per questa giornata.</div>
+
+<button id="back-to-top" aria-label="Torna in alto" onclick="scrollToTop()">&#8593;</button>
 
 <div id="lightbox">
   <span class="filename" id="lightbox-filename"></span>
@@ -307,6 +318,17 @@ document.getElementById('lightbox').addEventListener('click', e => {
 
 buildTabs();
 loadDay(currentDay);
+
+// Pulsante "torna su" quando si scrolla giù
+const backBtn = document.getElementById('back-to-top');
+window.addEventListener('scroll', () => {
+  if (window.scrollY > 400) backBtn.classList.add('show');
+  else backBtn.classList.remove('show');
+});
+
+function scrollToTop() {
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
 </script>
 </body>
 </html>
