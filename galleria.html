@@ -78,6 +78,12 @@ header .year { font-size:15px; color:#8a7050; }
   position:absolute; top:14px; right:18px; color:#fff; font-size:30px;
   cursor:pointer; z-index:10; line-height:1;
 }
+#lightbox .download-btn {
+  position:absolute; top:16px; right:62px; color:#fff; font-size:20px;
+  cursor:pointer; z-index:10; line-height:1; text-decoration:none;
+  background:rgba(255,255,255,0.12); width:34px; height:34px; border-radius:8px;
+  display:flex; align-items:center; justify-content:center;
+}
 #lightbox .nav-btn {
   position:absolute; top:50%; transform:translateY(-50%);
   color:#fff; font-size:36px; cursor:pointer; padding:10px 16px;
@@ -106,6 +112,7 @@ header .year { font-size:15px; color:#8a7050; }
 
 <div id="lightbox">
   <span class="filename" id="lightbox-filename"></span>
+  <a class="download-btn" id="lightbox-download" download title="Scarica foto">&#8681;</a>
   <span class="close-btn" onclick="closeLightbox()">&times;</span>
   <span class="nav-btn prev-btn" onclick="navLightbox(-1)">&#8249;</span>
   <div id="lightbox-viewport">
@@ -194,6 +201,9 @@ function setLightboxImage() {
   document.getElementById('lightbox-counter').textContent = `${currentIndex+1} / ${currentPhotos.length}`;
   const filename = p.full.substring(p.full.lastIndexOf('/')+1);
   document.getElementById('lightbox-filename').textContent = filename;
+  const dlBtn = document.getElementById('lightbox-download');
+  dlBtn.href = p.full;
+  dlBtn.setAttribute('download', filename);
   resetZoom();
 }
 
